@@ -11,7 +11,8 @@ class AddNotesController: UIViewController, UITextViewDelegate {
     
     // MARK: - Properties
     
-    let vc = HomeController()
+    let vc = ContainerController()
+    let home = HomeController()
     var titleField: UITextField = {
         var textField = UITextField()
         textField.attributedPlaceholder = NSAttributedString(string: "Title",
@@ -22,12 +23,14 @@ class AddNotesController: UIViewController, UITextViewDelegate {
         textField.becomeFirstResponder()
         return textField
     }()
-    var noteField: UITextView = {
-        var textView = UITextView()
-        textView.font = UIFont.systemFont(ofSize: 18)
-        //textView.textColor = .white
-        textView.backgroundColor = .clear
-        return textView
+    var descriptionField: UITextField = {
+        var textField = UITextField()
+        textField.attributedPlaceholder = NSAttributedString(string: "Note",
+                                     attributes: [NSAttributedString.Key.foregroundColor: UIColor.white])
+        textField.font = UIFont.systemFont(ofSize: 18)
+        textField.textColor = .white
+        textField.backgroundColor = .clear
+        return textField
     }()
     
     // MARK: - Init
@@ -39,11 +42,10 @@ class AddNotesController: UIViewController, UITextViewDelegate {
         view.addSubview(titleField)
         titleField.anchor(top: view.topAnchor, paddingTop: 100, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, height: 50)
         
-        view.addSubview(noteField)
-        noteField.anchor(top: titleField.bottomAnchor, paddingTop: 20, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, bottom: view.bottomAnchor, paddingBottom: 30)
+        view.addSubview(descriptionField)
+        descriptionField.anchor(top: titleField.bottomAnchor, paddingTop: 20, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, height: 70)
         
         configureNavigationBar()
-        textViewDidBeginEditing(noteField)
     }
     
     // MARK: - Handlers
@@ -51,27 +53,14 @@ class AddNotesController: UIViewController, UITextViewDelegate {
     func configureNavigationBar() {
         navigationController?.navigationBar.barTintColor = .darkGray
         navigationController?.navigationBar.barStyle = .black
-        
+
         navigationItem.title = "Add Notes"
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: #imageLiteral(resourceName: "saveIcon").withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(saveButtonClicked))
     }
     
-    func textViewDidBeginEditing(_ textView: UITextView) {
-        if textView.text.isEmpty {
-            textView.text = ""
-            textView.textColor = .white
-            noteField.text = "Note"
-        } else {
-            noteField.text = textView.text
-        }
-    }
-    
     @objc func saveButtonClicked() {
-        print("save tapped")
-        //print("\(titleField.text)")
-        vc.createNote(titleContent: titleField.text ?? "", noteContent: noteField.text ?? "")
-        navigationController?.pushViewController(vc, animated: true)
+        CoreDataManager.createNote(titleContent: titleField.text ?? "No data", noteContent: descriptionField.text ?? "No Data")
+        navigationController?.popViewController(animated: true)
     }
-    
 }
 

@@ -7,27 +7,36 @@
 
 import UIKit
 
+protocol editNoteDelegate: AnyObject {
+    func update(title: String, description: String)
+}
+
 class EditNotesController: UIViewController {
     
     // MARK: - Properties
     
+    weak var delegate: editNoteDelegate?
+    
     let models = [Notes]()
+    
     var titleField: UITextField = {
         var textField = UITextField()
-        textField.placeholder = "Enter Title"
-        textField.backgroundColor = .white
+        textField.attributedPlaceholder = NSAttributedString(string: "Title",
+                                     attributes: [NSAttributedString.Key.foregroundColor: UIColor.white])
         textField.font = UIFont.systemFont(ofSize: 20)
         textField.textColor = .white
         textField.backgroundColor = .clear
         textField.becomeFirstResponder()
         return textField
     }()
-    var noteField: UITextView = {
-        var textView = UITextView()
-        textView.font = UIFont.systemFont(ofSize: 18)
-        textView.textColor = .white
-        textView.backgroundColor = .clear
-        return textView
+    var descriptionField: UITextField = {
+        var textField = UITextField()
+        textField.attributedPlaceholder = NSAttributedString(string: "Note",
+                                     attributes: [NSAttributedString.Key.foregroundColor: UIColor.white])
+        textField.font = UIFont.systemFont(ofSize: 18)
+        textField.textColor = .white
+        textField.backgroundColor = .clear
+        return textField
     }()
     
     // MARK: - Init
@@ -39,8 +48,8 @@ class EditNotesController: UIViewController {
         view.addSubview(titleField)
         titleField.anchor(top: view.topAnchor, paddingTop: 100, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, height: 50)
         
-        view.addSubview(noteField)
-        noteField.anchor(top: titleField.bottomAnchor, paddingTop: 20, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, bottom: view.bottomAnchor, paddingBottom: 30)
+        view.addSubview(descriptionField)
+        descriptionField.anchor(top: titleField.bottomAnchor, paddingTop: 20, left: view.leftAnchor, paddingLeft: 10, right: view.rightAnchor, paddingRight: 10, height: 70)
         
         configureNavigationBar()
     }
@@ -56,9 +65,8 @@ class EditNotesController: UIViewController {
     }
     
     @objc func saveButtonClicked() {
-        let vc = HomeController()
-        vc.createNote(titleContent: titleField.text ?? "", noteContent: noteField.text ?? "")
-        navigationController?.pushViewController(vc, animated: true)
+        delegate?.update(title: titleField.text ?? "", description: descriptionField.text ?? "")
+        navigationController?.popViewController(animated: true)
     }
     
 }

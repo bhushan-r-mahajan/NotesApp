@@ -26,6 +26,7 @@ class NotesCollectionViewCell: UICollectionViewCell {
         noteField.font = UIFont.systemFont(ofSize: 17)
         noteField.textColor = .white
         noteField.clipsToBounds = true
+        noteField.numberOfLines = 0
         return noteField
     }()
     

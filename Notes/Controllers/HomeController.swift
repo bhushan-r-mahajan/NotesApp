@@ -6,10 +6,13 @@
 //
 
 import UIKit
+import Firebase
 
 class HomeController: UIViewController {
 
     // MARK:- Properties
+    
+    static private var selectedCell: IndexPath?
     
     private let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -28,8 +31,10 @@ class HomeController: UIViewController {
     
     var noNotesLabel: UILabel = {
         var label = UILabel()
-        label.text = "Notes you add will appear here"
+        label.text = "Notes you add appear here"
         label.font = UIFont.systemFont(ofSize: 24)
+        label.textAlignment = .center
+        label.numberOfLines = 0
         label.textColor = .white
         return label
     }()
@@ -38,20 +43,23 @@ class HomeController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        getAllNotes()
-        
         view.backgroundColor = UIColor(cgColor: #colorLiteral(red: 0.1764705882, green: 0.2039215686, blue: 0.2117647059, alpha: 1))
         
+        getAllNotes()
         configureNavigationBar()
         configureCollectionView()
         
-        //collectionView.addSubview(noNotesLabel)
-        //noNotesLabel.center = collectionView.center
-        //toggleHomeControllerLabel()
-        
         configureAddButton()
+        view.addSubview(noNotesLabel)
+        noNotesLabel.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: 50)
+        noNotesLabel.center = view.center
+        toggleHomeControllerLabel()
         
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        getAllNotes()
+        toggleHomeControllerLabel()
     }
     
     override func viewDidLayoutSubviews() {
@@ -68,6 +76,7 @@ class HomeController: UIViewController {
     }
     
     @objc func menuButtonClicked() {
+        print("menu tapped")
         delegate?.handleMenuToggle(forMenuOption: nil)
     }
     
@@ -108,50 +117,11 @@ class HomeController: UIViewController {
     // MARK: - CoreData
     
     func getAllNotes() {
-        do {
-            models = try context.fetch(Notes.fetchRequest())
+        CoreDataManager.getAllNotes { notes in
+            self.models = notes
             DispatchQueue.main.async {
                 self.collectionView.reloadData()
             }
-        } catch {
-            print("Error fetching items")
-        }
-    }
-    
-    func createNote(titleContent: String, noteContent: String) {
-        print("method called")
-        let newItem = Notes(context: context)
-        newItem.title = titleContent
-        newItem.note = noteContent
-        print("\(titleContent)")
-        
-        do {
-            try context.save()
-            getAllNotes()
-        } catch {
-            print("Error creating data")
-        }
-    }
-    
-    func updateNotes(item: Notes, newTitle: String, newNote: String) {
-        item.title = newTitle
-        item.note = newNote
-        do {
-            try context.save()
-            getAllNotes()
-        } catch {
-            print("Error editing data")
-        }
-    }
-    
-    func deleteNotes(item: Notes) {
-        context.delete(item)
-        
-        do {
-            try context.save()
-            getAllNotes()
-        } catch {
-            print("Error deleting data")
         }
     }
 }
@@ -197,19 +167,34 @@ extension HomeController: UICollectionViewDelegate, UICollectionViewDataSource, 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         print("selected")
+        HomeController.selectedCell = indexPath
         let item = models[indexPath.row]
         
         let sheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         sheet.addAction(UIAlertAction(title: "Edit", style: .default, handler: { [weak self] (_) in
-            
-            let editNotes = EditNotesController()
-            //self?.updateNotes(item: item, newTitle: tit, newNote: <#T##String#>)
-            self?.navigationController?.pushViewController(editNotes, animated: true)
+            let editController = EditNotesController()
+            editController.delegate = self
+            editController.titleField.text = item.title
+            editController.descriptionField.text = item.note
+            self?.navigationController?.pushViewController(editController, animated: true)
         }))
+        
         sheet.addAction(UIAlertAction(title: "Delete", style: .destructive, handler: { [weak self] (_) in
-            self?.deleteNotes(item: item)
+            CoreDataManager.deleteNotes(item: item)
+            self?.getAllNotes()
+            self?.toggleHomeControllerLabel()
         }))
+        
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         present(sheet, animated: true, completion: nil)
+    }
+}
+
+extension HomeController: editNoteDelegate {
+    func update(title: String, description: String) {
+        let item = models[HomeController.selectedCell!.row]
+        item.title = title
+        item.note = description
+        CoreDataManager.updateNotes(item: item, newTitle: title, newNote: description)
     }
 }

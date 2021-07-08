@@ -6,8 +6,9 @@
 //
 
 import UIKit
+import Firebase
 
-class ViewController: UIViewController {
+class ContainerController: UIViewController {
 
     // MARK:- Properties
     
@@ -19,7 +20,7 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        configureHomeController()
+        athenticateUserLogin()
     }
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -79,7 +80,17 @@ class ViewController: UIViewController {
         switch menuOption {
             case .Profile: print("Show Profile")
             case .Reminders: print("Show Reminders")
-            case .Logout: print("Perform Logout")
+        case .Logout:
+            print("logged out")
+            do {
+                try Auth.auth().signOut()
+                let login = LoginController()
+                login.modalPresentationStyle = .fullScreen
+                self.present(login, animated: true, completion: nil)
+            } catch {
+                print("Error loggin out !!")
+                present(Checker.showAlert(title: "Log Out Failed", message: "Something went wrong at Loggin out !"), animated: true, completion: nil)
+            }
         }
     }
     
@@ -88,11 +99,24 @@ class ViewController: UIViewController {
             self.setNeedsStatusBarAppearanceUpdate()
         }, completion: nil)
     }
+    
+    func athenticateUserLogin() {
+        if Auth.auth().currentUser == nil {
+            DispatchQueue.main.async {
+                let login = LoginController()
+                login.modalPresentationStyle = .fullScreen
+                self.present(login, animated: true, completion: nil)
+            }
+        } else {
+            configureHomeController()
+        }
+    }
 }
 
-extension ViewController: HomeControllerDelegate {
+extension ContainerController: HomeControllerDelegate {
     
     func handleMenuToggle(forMenuOption menuOption: MenuOption?) {
+        print("Menu toggled")
         if !isExpanded {
             configureMenuController()
         }
