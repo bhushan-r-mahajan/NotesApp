@@ -9,11 +9,10 @@
 import Foundation
 import CoreData
 
+extension NotesCoreData {
 
-extension Notes {
-
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<Notes> {
-        return NSFetchRequest<Notes>(entityName: "Notes")
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<NotesCoreData> {
+        return NSFetchRequest<NotesCoreData>(entityName: "NotesCoreData")
     }
 
     @NSManaged public var title: String?

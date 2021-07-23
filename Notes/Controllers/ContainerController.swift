@@ -20,7 +20,9 @@ class ContainerController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         athenticateUserLogin()
+        //configureHomeController()
     }
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -78,19 +80,32 @@ class ContainerController: UIViewController {
     
     func didSelectMenuOption(menuOption: MenuOption) {
         switch menuOption {
-            case .Profile: print("Show Profile")
-            case .Reminders: print("Show Reminders")
-        case .Logout:
-            print("logged out")
-            do {
-                try Auth.auth().signOut()
-                let login = LoginController()
-                login.modalPresentationStyle = .fullScreen
-                self.present(login, animated: true, completion: nil)
-            } catch {
-                print("Error loggin out !!")
-                present(Checker.showAlert(title: "Log Out Failed", message: "Something went wrong at Loggin out !"), animated: true, completion: nil)
-            }
+            case .Profile:
+                print("Show Profile")
+                let profile = ProfileController()
+                let nav = UINavigationController(rootViewController: profile)
+                nav.modalPresentationStyle = .fullScreen
+                present(nav, animated: true, completion: nil)
+                
+            case .Reminders:
+                print("Show Reminders")
+                let reminder = RemainderController()
+                let nav = UINavigationController(rootViewController: reminder)
+                nav.modalPresentationStyle = .fullScreen
+                present(nav, animated: true, completion: nil)
+                
+            case .Logout:
+                print("logged out")
+                do {
+                    try Auth.auth().signOut()
+                    let login = LoginController()
+                    let nav = UINavigationController(rootViewController: login)
+                    nav.modalPresentationStyle = .fullScreen
+                    self.present(nav, animated: true, completion: nil)
+                } catch {
+                    print("Error loggin out !!")
+                    present(Checker.showAlert(title: "Log Out Failed", message: "Something went wrong at Loggin out !"), animated: true, completion: nil)
+                }
         }
     }
     
@@ -104,8 +119,10 @@ class ContainerController: UIViewController {
         if Auth.auth().currentUser == nil {
             DispatchQueue.main.async {
                 let login = LoginController()
-                login.modalPresentationStyle = .fullScreen
-                self.present(login, animated: true, completion: nil)
+                //login.delegate = self
+                let nav = UINavigationController(rootViewController: login)
+                nav.modalPresentationStyle = .fullScreen
+                self.present(nav, animated: true, completion: nil)
             }
         } else {
             configureHomeController()
@@ -126,3 +143,8 @@ extension ContainerController: HomeControllerDelegate {
     }
 }
 
+//extension ContainerController: authenticationDelegate {
+//    func showHomeController() {
+//        configureHomeController()
+//    }
+//}

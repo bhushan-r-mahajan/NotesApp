@@ -8,9 +8,15 @@
 import UIKit
 import Firebase
 
+//protocol authenticationDelegate: class {
+//    func showHomeController()
+//}
+
 class LoginController: UIViewController {
     
     // MARK: - Properties
+    
+    //weak var delegate: authenticationDelegate?
     
     let logoImageView: UIImageView = {
         let imgView = UIImageView()
@@ -108,21 +114,22 @@ class LoginController: UIViewController {
             present(Checker.showAlert(title: "Invalid Password", message: "The Password you entered doesn't look right ! Try again !"), animated: true, completion: nil)
         }
             
-        Auth.auth().signIn(withEmail: email, password: password) { (result, error) in
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] (result, error) in
             if let error = error {
                 print("Error", error.localizedDescription)
-                self.present(Checker.showAlert(title: "Login Failed", message: "\(error.localizedDescription)"), animated: true, completion: nil)
+                self?.present(Checker.showAlert(title: "Login Failed", message: "\(error.localizedDescription)"), animated: true, completion: nil)
             } else {
                 print("Login Successful")
-                self.dismiss(animated: true, completion: nil)
+                self?.dismiss(animated: true, completion: nil)
             }
         }
     }
     
     @objc func signUpButtonTapped() {
         let signUp = SignUpController()
-        signUp.modalPresentationStyle = .fullScreen
-        present(signUp, animated: true, completion: nil)
+        //signUp.delegate = delegate
+        print("Signup button taopped!!!!")
+        navigationController?.pushViewController(signUp, animated: true)
     }
     
     @objc func forgotPasswordButtonTapped() {

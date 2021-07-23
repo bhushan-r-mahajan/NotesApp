@@ -7,10 +7,13 @@
 
 import UIKit
 import Firebase
+import FirebaseStorage
 
 class SignUpController: UIViewController {
     
     // MARK: - Properties
+    
+    //weak var delegate: authenticationDelegate?
     
     let firstnameTextField = UITextField()
     let lastnameTextField = UITextField()
@@ -20,14 +23,16 @@ class SignUpController: UIViewController {
     let lastnameContainer = UIView()
     let emailContainer = UIView()
     let passwordContainer = UIView()
+    var selectedImage: UIImage?
     
-    let logoImageView: UIImageView = {
-        let imgView = UIImageView()
-        imgView.contentMode = .scaleAspectFit
-        imgView.clipsToBounds = true
-        imgView.image = #imageLiteral(resourceName: "accountIcon")
-        imgView.layer.cornerRadius = 100
-        return imgView
+    let profileImage: UIButton = {
+        let button = UIButton()
+        button.clipsToBounds = true
+        button.setBackgroundImage(UIImage(systemName: "person.fill.badge.plus")?.withTintColor(.white, renderingMode: .alwaysOriginal), for: .normal)
+        button.imageView?.contentMode = .scaleToFill
+        button.addTarget(self, action: #selector(profileImageSelectorTapped), for: .touchUpInside)
+        //button.layer.cornerRadius = 100
+        return button
     }()
     
     let signUpButton: UIButton = {
@@ -41,6 +46,15 @@ class SignUpController: UIViewController {
         return button
     }()
     
+    let alreadyHaveAccountButton: UIButton = {
+        let button = UIButton(type: .system)
+        let attributedTitle = NSMutableAttributedString(string: "Already have account ?", attributes: [NSAttributedString.Key.font : UIFont.boldSystemFont(ofSize: 17), NSAttributedString.Key.foregroundColor: UIColor.white])
+        attributedTitle.append(NSAttributedString(string:"Login", attributes: [NSAttributedString.Key.font: UIFont.boldSystemFont(ofSize: 17), NSAttributedString.Key.foregroundColor: UIColor.white]))
+        button.setAttributedTitle(attributedTitle, for: .normal)
+        button.addTarget(self, action: #selector(alreadyHaveAccountButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
     // MARK: - Init
     
     override func viewDidLoad() {
@@ -48,25 +62,26 @@ class SignUpController: UIViewController {
         configureViewComponents()
     }
     
-    override func viewDidDisappear(_ animated: Bool) {
-        dismiss(animated: true, completion: nil)
-    }
+//    override func viewDidDisappear(_ animated: Bool) {
+//        dismiss(animated: true, completion: nil)
+//    }
     
     // MARK: - ConfigureView
     
     func configureViewComponents() {
         view.backgroundColor = #colorLiteral(red: 0.1764705882, green: 0.2039215686, blue: 0.2117647059, alpha: 1)
+        
         navigationController?.navigationBar.barStyle = .black
         navigationController?.navigationBar.isHidden = true
-        
-        view.addSubview(logoImageView)
-        logoImageView.anchor(top: view.topAnchor, paddingTop: 50, width: 200, height: 200)
-        logoImageView.translatesAutoresizingMaskIntoConstraints = false
-        logoImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+    
+        view.addSubview(profileImage)
+        profileImage.anchor(top: view.topAnchor, paddingTop: 70, width: 200, height: 200)
+        profileImage.translatesAutoresizingMaskIntoConstraints = false
+        profileImage.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         
         firstnameTextField.StyleTextField(placeholder: "Firstname", isSecureText: false)
         view.addSubview(firstnameContainer)
-        firstnameContainer.anchor(top: logoImageView.bottomAnchor, paddingTop: 20, left: view.leftAnchor, paddingLeft: 32, right: view.rightAnchor, paddingRight: 32, height: 50)
+        firstnameContainer.anchor(top: profileImage.bottomAnchor, paddingTop: 40, left: view.leftAnchor, paddingLeft: 32, right: view.rightAnchor, paddingRight: 32, height: 50)
         firstnameContainer.textContainerView(view: firstnameContainer, image: #imageLiteral(resourceName: "contactsIcon"), textField: firstnameTextField)
         
         lastnameTextField.StyleTextField(placeholder: "Lastname", isSecureText: false)
@@ -86,9 +101,26 @@ class SignUpController: UIViewController {
         
         view.addSubview(signUpButton)
         signUpButton.anchor(top: passwordContainer.bottomAnchor, paddingTop: 30 ,left: view.leftAnchor, paddingLeft: 70, right: view.rightAnchor, paddingRight: 70, height: 50)
+        
+        view.addSubview(alreadyHaveAccountButton)
+        alreadyHaveAccountButton.anchor(left: view.leftAnchor, paddingLeft: 70, right: view.rightAnchor, paddingRight: 70, bottom: view.bottomAnchor, paddingBottom: 40, height: 50)
     }
     
     // MARK: - Handlers
+    
+    @objc func profileImageSelectorTapped() {
+        print("imageview tapped")
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .photoLibrary
+        imagePicker.delegate = self
+        imagePicker.allowsEditing = true
+        
+        present(imagePicker, animated: true, completion: nil)
+    }
+    
+    @objc func alreadyHaveAccountButtonTapped() {
+        navigationController?.popViewController(animated: true)
+    }
     
     @objc func signUpButtonTapped() {
         
@@ -96,23 +128,73 @@ class SignUpController: UIViewController {
         let lastname = lastnameTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
         let email = emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
         let password = passwordTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-        Auth.auth().createUser(withEmail: email , password: password) { (result, problem) in
+        
+        guard let image = self.selectedImage else {
+            return
+        }
+        guard let imagedata = image.jpegData(compressionQuality: 0.75) else {
+            return
+        }
+        
+        Auth.auth().createUser(withEmail: email , password: password) { [weak self] (result, problem) in
             let uid = result?.user.uid
             if let problem = problem {
                 print("Error Creating Account !", problem.localizedDescription)
-                self.present(Checker.showAlert(title: "Sign Up Failed", message: "\(problem.localizedDescription) . Try again"), animated: true, completion: nil)
-            } else {
-                Firestore.firestore().collection("users").addDocument(data: ["firstname":firstname, "lastname":lastname, "uid":uid!]) { (error) in
-                    if error != nil {
-                        print("Error Adding Data To Firsbase!", error!.localizedDescription)
+                self?.present(Checker.showAlert(title: "Sign Up Failed", message: "\(problem.localizedDescription) . Try again"), animated: true, completion: nil)
+                return
+            }
+            print("===========================", uid!)
+            let fileName = NSUUID().uuidString
+            let storageRef = Storage.storage().reference(withPath: "profileImage/\(fileName)")
+//                let storageProfileRef = storageRef.child("Users").child(uid!)
+//                let metadata = StorageMetadata()
+//                metadata.contentType = "image/jpg"
+//                storageProfileRef.putData(imagedata, metadata: metadata) { storageMetaData, error in
+//                    if let error = error {
+//                        print("Error saving profile photo \(error.localizedDescription)")
+//                    }
+//                }
+                storageRef.putData(imagedata, metadata: nil) { storageMetaData, error in
+                    if let e = error {
+                        print("Error putting image in storage \(e.localizedDescription)")
+                        return
                     }
                 }
-                print("signup successful")
-                self.view.window?.makeKeyAndVisible()
-                let homeScreen = ContainerController()
-                self.view.window?.rootViewController = homeScreen
+                print("****************")
+                storageRef.downloadURL { url, error in
+//                    if let e = error {
+//                        //print(e.localizedDescription)
+//                        return
+//                    }
+                    print("11111111")
+                    guard let imageURl = url?.absoluteString else { return }
+                    print("\(String(describing: imageURl))")
+                }
+            
+            Firestore.firestore().collection("users").addDocument(data: ["firstname": firstname, "lastname": lastname, "uid": uid!, "profilePhoto": "", "email": email]) { (error) in
+            if error != nil {
+                print("Error Adding Data To Firsbase!", error!.localizedDescription)
             }
+            }
+            print("signup successful")
+                DispatchQueue.main.async {
+                    self?.dismiss(animated: true, completion: nil)
+                }
+            }
+    }
+}
+
+extension SignUpController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        if let image = info[UIImagePickerController.InfoKey(rawValue: "UIImagePickerControllerEditedImage")] as? UIImage {
+            profileImage.setImage(image, for: .normal)
+            selectedImage = image
         }
+        picker.dismiss(animated: true, completion: nil)
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true, completion: nil)
     }
 }
